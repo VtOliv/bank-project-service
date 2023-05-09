@@ -1,142 +1,156 @@
 package com.study.bank.service;
 
+import static com.study.bank.domain.TipoConta.CC;
+import static com.study.bank.domain.TipoConta.CP;
 import static com.study.bank.domain.TipoConta.getContaTipoPorCodigo;
-import static com.study.bank.domain.TipoConta.getContaTipoPorSigla;
-import static java.lang.System.out;
+import static java.math.BigDecimal.ZERO;
+import static java.math.RoundingMode.HALF_UP;
+import static java.util.Optional.ofNullable;
 
-import java.sql.Connection;
-import java.util.Scanner;
+import java.math.BigDecimal;
+
+import org.springframework.stereotype.Service;
 
 import com.study.bank.domain.Conta;
+import com.study.bank.domain.TipoConta;
+import com.study.bank.domain.form.ContaForm;
+import com.study.bank.domain.view.ContaView;
+import com.study.bank.domain.view.TransacoesView;
+import com.study.bank.repository.ContaRepository;
 
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
 public class ContaService {
 
-	public static Scanner scan = new Scanner(System.in);
+	private final ContaRepository repo;
 
-	private Conta modelo(Conta conta) {
+	private ContaView viewBuilder(Conta conta) {
+		var saldo = new BigDecimal(conta.getSaldo()).setScale(2, HALF_UP);
+		var status = conta.isStatus() ? "Ativo" : "Desativado";
 
-		out.println("Digite o tipo da conta [cp - Conta poupança / cc - Conta corrente] :");
-		conta.setTipo(getContaTipoPorSigla(scan.nextLine()).orElse(null));
-
-		out.println("Digite o nome do titular da conta: ");
-		conta.setDono(scan.next());
-
-		conta.setStatus(false);
-		conta.setSaldo(0.0);
-
-		return conta;
+		return ContaView.builder().numConta(conta.getNumConta()).dono(conta.getDono())
+				.tipo(conta.getTipo().getDescricao()).saldo(saldo).status(status).build();
 	}
 
-	public Conta criarConta(Connection conn) {
+	public ContaView criarConta(ContaForm form) {
 
-		var conta = modelo(new Conta());
+		var conta = new Conta();
 
-		try {
-			var preparedStatement = conn
-					.prepareStatement("insert into conta(tipo, dono, saldo, status) values(?, ?, ?, ?)");
-			preparedStatement.setString(1, conta.getTipo().getSigla());
-			preparedStatement.setString(2, conta.getDono());
-			preparedStatement.setDouble(3, conta.getSaldo());
-			preparedStatement.setBoolean(4, conta.isStatus());
-			preparedStatement.executeUpdate();
-		} catch (Exception e) {
-			out.println(e);
+		conta.setDono(form.getDono());
+		conta.setTipo(TipoConta.getContaTipoPorCodigo(form.getTipo()).orElse(CC));
+		conta.setSaldo(conta.getTipo().equals(CC) ? 50.00 : 150.00);
+		conta.setStatus(true);
+
+		repo.save(conta);
+
+		return viewBuilder(conta);
+	}
+
+	public ContaView buscarConta(Integer numconta) {
+
+		var conta = repo.findById(numconta).orElseThrow();
+
+		return viewBuilder(conta);
+	}
+
+	public ContaView alterarConta(ContaForm form, Integer numconta) {
+
+		var conta = repo.findById(numconta).orElseThrow();
+
+		conta.setDono(ofNullable(form.getDono()).orElse(conta.getDono()));
+		conta.setTipo(getContaTipoPorCodigo(ofNullable(form.getTipo()).orElse(conta.getTipo().getCode())).get());
+
+		var saved = repo.save(conta);
+
+		return viewBuilder(saved);
+
+	}
+
+	public TransacoesView depositar(Double valorDoDeposito, Integer numconta) {
+
+		var conta = repo.findById(numconta).orElseThrow();
+		var view = new TransacoesView();
+
+		if (conta.isStatus()) {
+			conta.setSaldo(conta.getSaldo() + valorDoDeposito);
+
+			repo.save(conta);
+			view.setMessage("Você depositou: R$ " + valorDoDeposito);
+		} else {
+			view.setMessage("A conta não está ativa !");
 		}
-		return conta;
+		view.setSaldo(new BigDecimal(conta.getSaldo()).setScale(2, HALF_UP));
+
+		return view;
 	}
 
-	public Conta buscarConta(String message, Connection conn) {
+	public TransacoesView sacar(Double valorDoSaque, Integer numconta) {
 
-		out.println(message);
-		var numConta = scan.nextInt();
+		var conta = repo.findById(numconta).orElseThrow();
+		var view = new TransacoesView();
 
-		Conta conta = null;
-		try {
-			var preparedStatement = conn.prepareStatement("select * from conta where numConta = ?");
-			preparedStatement.setInt(1, numConta);
-			var resultSet = preparedStatement.executeQuery();
-			if (resultSet.next()) {
-				conta = new Conta();
-				conta.setNumConta(resultSet.getInt("numConta"));
-				conta.setTipo(getContaTipoPorSigla(resultSet.getString("tipo")).get());
-				conta.setDono(resultSet.getString("dono"));
-				conta.setSaldo(resultSet.getDouble("saldo"));
-				conta.setStatus(resultSet.getBoolean("status"));
+		if (!conta.isStatus()) {
+			view.setMessage("A conta não está ativa !");
+		} else {
+
+			if (conta.getSaldo() >= valorDoSaque) {
+				conta.setSaldo(conta.getSaldo() - valorDoSaque);
+				view.setMessage("Voce sacou: R$ " + valorDoSaque);
+
+				repo.save(conta);
+			} else {
+				view.setMessage("Voce nao possui saldo suficiente");
 			}
-		} catch (Exception e) {
-			conta = null;
 		}
-		return conta;
+		view.setSaldo(new BigDecimal(conta.getSaldo()).setScale(2, HALF_UP));
+		return view;
 	}
 
-	public void alterarConta(Conta conta, Connection conn) {
+	public TransacoesView fecharConta(Integer numconta) {
 
-		out.println("Escolha a opção desejada:");
-		out.println("[1] - Nome do dono");
-		out.println("[2] - Tipo da conta");
+		var conta = repo.findById(numconta).orElseThrow();
+		var view = new TransacoesView();
 
-		var opt = scan.nextInt();
+		if (conta.getSaldo() > 0) {
+			view.setMessage("Conta possui saldo e nao pode ser fechada");
+			view.setSaldo(new BigDecimal(conta.getSaldo()).setScale(2, HALF_UP));
+		} else {
+			conta.setStatus(false);
 
-		switch (opt) {
-		case 1 -> {
-			out.println("Digite o nome do titular da conta");
-			conta.setDono(scan.nextLine());
-		}
-		case 2 -> {
-			out.println("Digite o tipo da conta [1 - Conta poupança / 2 - Conta corrente] ");
-			conta.setTipo(getContaTipoPorCodigo(scan.nextInt()).orElse(null));
-		}
+			view.setMessage("A conta foi desativada");
+			view.setSaldo(ZERO);
+
+			repo.save(conta);
 		}
 
-		try {
-			var preparedStatement = conn.prepareStatement("update conta set tipo = ?, dono = ? where numConta = ?");
-			preparedStatement.setString(1, conta.getTipo().getSigla());
-			preparedStatement.setString(2, conta.getDono());
-			preparedStatement.setInt(3, conta.getNumConta());
-			preparedStatement.executeUpdate();
-		} catch (Exception e) {
-			out.println(e);
-		}
-
-		out.println("Informações atualizadas com sucesso");
-		mostrarInfoDaConta(conta);
+		return view;
 	}
 
-	public void mostrarInfoDaConta(Conta acc) {
-		var status = acc.isStatus() ? "Ativa" : "Desativada";
+	public TransacoesView pagarConta(Double valorDaConta, Integer numconta) {
+		var contaComTaxaCC = valorDaConta + 12.00;
+		var contaComTaxaCP = valorDaConta + 20.00;
 
-		out.println("------------------- INFO DA CONTA ------------------");
-		out.println("Numero da conta: " + acc.getNumConta());
-		out.println("Tipo da Conta: " + acc.getTipo().getDescricao());
-		out.println("Nome do Titular: " + acc.getDono());
-		out.println("Saldo da Conta: " + acc.getSaldo());
-		out.println("Status da Conta: " + status);
-		out.println("----------------------------------------------------");
-		out.println("");
-	}
+		var conta = repo.findById(numconta).orElseThrow();
+		var view = new TransacoesView();
 
-	public void menu() {
-		out.println("""
-				-------------------- Bank System -------------------
-				Escolha a opcao desejada:
-				[1] - Buscar outra conta
-				[2] - Criar conta
-				[3] - Alterar dados da conta
-				[4] - Mostrar dados da conta
-				[5] - Ativar conta
-				[6] - Desativar conta
-				[7] - Sacar
-				[8] - Depositar
-				[9] - Cobrar mensalidade
-				[0] - Encerrar sistema
-				----------------------------------------------------
-						""");
-	}
+		if (CC.equals(conta.getTipo()) && conta.getSaldo() >= contaComTaxaCC) {
 
-	public static Double inserirValor(String message) {
-		out.println(message);
-		var value = scan.nextDouble();
+			conta.setSaldo(conta.getSaldo() - contaComTaxaCC);
+			view.setMessage("Foi paga a conta de: R$ " + valorDaConta + " e cobrada a taxa de: R$ " + 12.00);
+			repo.save(conta);
+		} else if (CP.equals(conta.getTipo()) && conta.getSaldo() >= contaComTaxaCP) {
 
-		return value;
+			conta.setSaldo(conta.getSaldo() - contaComTaxaCP);
+			view.setMessage("Foi paga a conta de: R$ " + valorDaConta + " e cobrada a taxa de: R$ " + 20.00);
+			repo.save(conta);
+		} else {
+			view.setMessage("Voce nao possui saldo suficiente");
+		}
+
+		view.setSaldo(new BigDecimal(conta.getSaldo()).setScale(2, HALF_UP));
+
+		return view;
 	}
 }
