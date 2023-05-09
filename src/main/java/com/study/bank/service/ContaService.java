@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import com.study.bank.domain.Conta;
 import com.study.bank.domain.TipoConta;
 import com.study.bank.domain.form.ContaForm;
+import com.study.bank.domain.form.TransacaoForm;
 import com.study.bank.domain.view.ContaView;
 import com.study.bank.domain.view.TransacoesView;
 import com.study.bank.repository.ContaRepository;
@@ -68,16 +69,16 @@ public class ContaService {
 
 	}
 
-	public TransacoesView depositar(Double valorDoDeposito, Integer numconta) {
+	public TransacoesView depositar(TransacaoForm form) {
 
-		var conta = repo.findById(numconta).orElseThrow();
+		var conta = repo.findById(form.getNumconta()).orElseThrow();
 		var view = new TransacoesView();
 
 		if (conta.isStatus()) {
-			conta.setSaldo(conta.getSaldo() + valorDoDeposito);
+			conta.setSaldo(conta.getSaldo() + form.getValor());
 
 			repo.save(conta);
-			view.setMessage("Você depositou: R$ " + valorDoDeposito);
+			view.setMessage("Você depositou: R$ " + form.getValor());
 		} else {
 			view.setMessage("A conta não está ativa !");
 		}
@@ -86,18 +87,18 @@ public class ContaService {
 		return view;
 	}
 
-	public TransacoesView sacar(Double valorDoSaque, Integer numconta) {
+	public TransacoesView sacar(TransacaoForm form) {
 
-		var conta = repo.findById(numconta).orElseThrow();
+		var conta = repo.findById(form.getNumconta()).orElseThrow();
 		var view = new TransacoesView();
 
 		if (!conta.isStatus()) {
 			view.setMessage("A conta não está ativa !");
 		} else {
 
-			if (conta.getSaldo() >= valorDoSaque) {
-				conta.setSaldo(conta.getSaldo() - valorDoSaque);
-				view.setMessage("Voce sacou: R$ " + valorDoSaque);
+			if (conta.getSaldo() >= form.getValor()) {
+				conta.setSaldo(conta.getSaldo() - form.getValor());
+				view.setMessage("Voce sacou: R$ " + form.getValor());
 
 				repo.save(conta);
 			} else {
@@ -128,22 +129,22 @@ public class ContaService {
 		return view;
 	}
 
-	public TransacoesView pagarConta(Double valorDaConta, Integer numconta) {
-		var contaComTaxaCC = valorDaConta + 12.00;
-		var contaComTaxaCP = valorDaConta + 20.00;
+	public TransacoesView pagarConta(TransacaoForm form) {
+		var contaComTaxaCC = form.getValor() + 12.00;
+		var contaComTaxaCP = form.getValor() + 20.00;
 
-		var conta = repo.findById(numconta).orElseThrow();
+		var conta = repo.findById(form.getNumconta()).orElseThrow();
 		var view = new TransacoesView();
 
 		if (CC.equals(conta.getTipo()) && conta.getSaldo() >= contaComTaxaCC) {
 
 			conta.setSaldo(conta.getSaldo() - contaComTaxaCC);
-			view.setMessage("Foi paga a conta de: R$ " + valorDaConta + " e cobrada a taxa de: R$ " + 12.00);
+			view.setMessage("Foi paga a conta de: R$ " + form.getValor() + " e cobrada a taxa de: R$ " + 12.00);
 			repo.save(conta);
 		} else if (CP.equals(conta.getTipo()) && conta.getSaldo() >= contaComTaxaCP) {
 
 			conta.setSaldo(conta.getSaldo() - contaComTaxaCP);
-			view.setMessage("Foi paga a conta de: R$ " + valorDaConta + " e cobrada a taxa de: R$ " + 20.00);
+			view.setMessage("Foi paga a conta de: R$ " + form.getValor() + " e cobrada a taxa de: R$ " + 20.00);
 			repo.save(conta);
 		} else {
 			view.setMessage("Voce nao possui saldo suficiente");

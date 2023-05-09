@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.study.bank.domain.form.ContaForm;
+import com.study.bank.domain.form.TransacaoForm;
 import com.study.bank.domain.view.ContaView;
 import com.study.bank.domain.view.TransacoesView;
 import com.study.bank.service.ContaService;
@@ -59,36 +60,36 @@ public class ContaController {
 		return ResponseEntity.status(OK).body(conta);
 	}
 	
-	@PutMapping("/sacar/{numconta}/{valorDoSaque}")
-	public ResponseEntity<TransacoesView> sacar(@PathVariable Integer numconta, @PathVariable Double valorDoSaque) {
+	@PutMapping("/sacar")
+	public ResponseEntity<TransacoesView> sacar(@RequestBody TransacaoForm form) {
 
-		log.info("Saque: Valor: {} NumConta: {}", valorDoSaque, numconta);
+		log.info("Saque: Valor: {} NumConta: {}", form.getValor(), form.getNumconta());
 
-		var transacao = service.sacar(valorDoSaque, numconta);
+		var transacao = service.sacar(form);
 		
 		log.info("Novo saldo: Saldo: {}", transacao.getSaldo());
 
 		return ResponseEntity.status(OK).body(transacao);
 	}
 	
-	@PutMapping("/depositar/{numconta}/{valorDoDeposito}")
-	public ResponseEntity<TransacoesView> depositar(@PathVariable Integer numconta, @PathVariable Double valorDoDeposito) {
+	@PutMapping("/depositar")
+	public ResponseEntity<TransacoesView> depositar(@RequestBody TransacaoForm form) {
 
-		log.info("Depósito: Valor: {} NumConta: {}", valorDoDeposito, numconta);
+		log.info("Depósito: Valor: {} NumConta: {}", form.getValor(), form.getNumconta());
 
-		var transacao = service.depositar(valorDoDeposito, numconta);
+		var transacao = service.depositar(form);
 		
 		log.info("Novo saldo: Saldo: {}", transacao.getSaldo());
 
 		return ResponseEntity.status(OK).body(transacao);
 	}
 	
-	@PutMapping("/pagarConta/{numconta}/{valorDoPagamento}")
-	public ResponseEntity<TransacoesView> pagarConta(@PathVariable Integer numconta, @PathVariable Double valorDoPagamento) {
+	@PutMapping("/pagarConta")
+	public ResponseEntity<TransacoesView> pagarConta(@RequestBody TransacaoForm form) {
 
-		log.info("Pagamento: Valor: {} NumConta: {}", valorDoPagamento, numconta);
+		log.info("Pagamento: Valor: {} NumConta: {}", form.getValor(), form.getNumconta());
 
-		var transacao = service.pagarConta(valorDoPagamento, numconta);
+		var transacao = service.pagarConta(form);
 		
 		log.info("Novo saldo: Saldo: {}", transacao.getSaldo());
 
