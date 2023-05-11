@@ -1,5 +1,8 @@
 package com.study.bank.service;
 
+import static com.study.bank.domain.Operacao.DEPOSITO;
+import static com.study.bank.domain.Operacao.PAGAMENTO;
+import static com.study.bank.domain.Operacao.SAQUE;
 import static com.study.bank.domain.TipoConta.CC;
 import static com.study.bank.domain.TipoConta.CP;
 import static com.study.bank.domain.TipoConta.getContaTipoPorCodigo;
@@ -26,6 +29,8 @@ import lombok.RequiredArgsConstructor;
 public class ContaService {
 
 	private final ContaRepository repo;
+	
+	private final ExtratoService extratoService;
 
 	private ContaView viewBuilder(Conta conta) {
 		var saldo = new BigDecimal(conta.getSaldo()).setScale(2, HALF_UP);
@@ -73,6 +78,8 @@ public class ContaService {
 
 		var conta = repo.findById(form.getNumconta()).orElseThrow();
 		var view = new TransacoesView();
+		
+		var saldoInicial = conta.getSaldo();
 
 		if (conta.isStatus()) {
 			conta.setSaldo(conta.getSaldo() + form.getValor());
@@ -83,6 +90,8 @@ public class ContaService {
 			view.setMessage("A conta não está ativa !");
 		}
 		view.setSaldo(new BigDecimal(conta.getSaldo()).setScale(2, HALF_UP));
+		
+		extratoService.gerarExtrato(conta.getNumConta(), saldoInicial, conta.getSaldo(), DEPOSITO);
 
 		return view;
 	}
@@ -91,6 +100,8 @@ public class ContaService {
 
 		var conta = repo.findById(form.getNumconta()).orElseThrow();
 		var view = new TransacoesView();
+		
+		var saldoInicial = conta.getSaldo();
 
 		if (!conta.isStatus()) {
 			view.setMessage("A conta não está ativa !");
@@ -106,6 +117,9 @@ public class ContaService {
 			}
 		}
 		view.setSaldo(new BigDecimal(conta.getSaldo()).setScale(2, HALF_UP));
+		
+		extratoService.gerarExtrato(conta.getNumConta(), saldoInicial, conta.getSaldo(), SAQUE);
+		
 		return view;
 	}
 
@@ -135,6 +149,8 @@ public class ContaService {
 
 		var conta = repo.findById(form.getNumconta()).orElseThrow();
 		var view = new TransacoesView();
+		
+		var saldoInicial = conta.getSaldo();
 
 		if (CC.equals(conta.getTipo()) && conta.getSaldo() >= contaComTaxaCC) {
 
@@ -151,6 +167,8 @@ public class ContaService {
 		}
 
 		view.setSaldo(new BigDecimal(conta.getSaldo()).setScale(2, HALF_UP));
+		
+		extratoService.gerarExtrato(conta.getNumConta(), saldoInicial, conta.getSaldo(), PAGAMENTO);
 
 		return view;
 	}

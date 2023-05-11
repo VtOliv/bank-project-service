@@ -2,6 +2,10 @@ package com.study.bank.controller;
 
 import static org.springframework.http.HttpStatus.OK;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -10,11 +14,14 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.study.bank.domain.Extrato;
+import com.study.bank.domain.filter.ExtratoFilter;
 import com.study.bank.domain.form.ContaForm;
 import com.study.bank.domain.form.TransacaoForm;
 import com.study.bank.domain.view.ContaView;
 import com.study.bank.domain.view.TransacoesView;
 import com.study.bank.service.ContaService;
+import com.study.bank.service.ExtratoService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +32,8 @@ import lombok.extern.slf4j.Slf4j;
 public class ContaController {
 
 	private final ContaService service;
+
+	private final ExtratoService extratoService;
 
 	@PostMapping("/criar")
 	public ResponseEntity<ContaView> criarConta(@RequestBody ContaForm form) {
@@ -54,59 +63,72 @@ public class ContaController {
 		log.info("Alterar conta: Tipo: {} Dono: {}", form.getTipo(), form.getDono());
 
 		var conta = service.alterarConta(form, numconta);
-		
+
 		log.info("Conta alterada: Tipo: {} Dono: {}", conta.getTipo(), conta.getDono());
 
 		return ResponseEntity.status(OK).body(conta);
 	}
-	
+
 	@PutMapping("/sacar")
 	public ResponseEntity<TransacoesView> sacar(@RequestBody TransacaoForm form) {
 
 		log.info("Saque: Valor: {} NumConta: {}", form.getValor(), form.getNumconta());
 
 		var transacao = service.sacar(form);
-		
+
 		log.info("Novo saldo: Saldo: {}", transacao.getSaldo());
 
 		return ResponseEntity.status(OK).body(transacao);
 	}
-	
+
 	@PutMapping("/depositar")
 	public ResponseEntity<TransacoesView> depositar(@RequestBody TransacaoForm form) {
 
 		log.info("Depósito: Valor: {} NumConta: {}", form.getValor(), form.getNumconta());
 
 		var transacao = service.depositar(form);
-		
+
 		log.info("Novo saldo: Saldo: {}", transacao.getSaldo());
 
 		return ResponseEntity.status(OK).body(transacao);
 	}
-	
+
 	@PutMapping("/pagarConta")
 	public ResponseEntity<TransacoesView> pagarConta(@RequestBody TransacaoForm form) {
 
 		log.info("Pagamento: Valor: {} NumConta: {}", form.getValor(), form.getNumconta());
 
 		var transacao = service.pagarConta(form);
-		
+
 		log.info("Novo saldo: Saldo: {}", transacao.getSaldo());
 
 		return ResponseEntity.status(OK).body(transacao);
 	}
-	
+
 	@PutMapping("/fecharConta")
 	public ResponseEntity<TransacoesView> fecharConta(Integer numconta) {
 
 		log.info("Encerrar conta: NumConta: {}", numconta);
 
 		var transacao = service.fecharConta(numconta);
-		
-		var status = transacao.getSaldo().doubleValue() > 0? "Ativo" : "Desativado";
-		
+
+		var status = transacao.getSaldo().doubleValue() > 0 ? "Ativo" : "Desativado";
+
 		log.info("Status: {}", status);
 
 		return ResponseEntity.status(OK).body(transacao);
+	}
+
+	@GetMapping("/buscarExtrato")
+	public ResponseEntity<Page<Extrato>> buscarExtrato(ExtratoFilter filter,
+			@PageableDefault(page = 0, size = 20, sort = "data", direction = Direction.ASC) Pageable pageable) {
+
+		log.info("Filtro: {}", filter);
+
+		var extrato = extratoService.buscarExtrato(filter, pageable);
+
+		log.info("Resgistros encontrados: {}", extrato.getTotalElements());
+
+		return ResponseEntity.status(OK).body(extrato);
 	}
 }
