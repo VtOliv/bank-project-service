@@ -20,6 +20,8 @@ import com.study.bank.domain.form.ContaForm;
 import com.study.bank.domain.form.TransacaoForm;
 import com.study.bank.domain.view.ContaView;
 import com.study.bank.domain.view.TransacoesView;
+import com.study.bank.exception.CloseAccountException;
+import com.study.bank.exception.NotFoundException;
 import com.study.bank.repository.ContaRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -56,7 +58,7 @@ public class ContaService {
 
 	public ContaView buscarConta(Integer numconta) {
 
-		var conta = repo.findById(numconta).orElseThrow();
+		var conta = repo.findById(numconta).orElseThrow(NotFoundException::new);
 
 		return viewBuilder(conta);
 	}
@@ -131,6 +133,7 @@ public class ContaService {
 		if (conta.getSaldo() > 0) {
 			view.setMessage("Conta possui saldo e nao pode ser fechada");
 			view.setSaldo(new BigDecimal(conta.getSaldo()).setScale(2, HALF_UP));
+			throw new CloseAccountException();
 		} else {
 			conta.setStatus(false);
 

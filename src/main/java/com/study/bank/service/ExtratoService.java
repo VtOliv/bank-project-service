@@ -1,10 +1,11 @@
 package com.study.bank.service;
 
+import static org.springframework.data.jpa.domain.Specification.where;
+
 import java.time.LocalDateTime;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.study.bank.domain.Extrato;
@@ -49,8 +50,8 @@ public class ExtratoService extends Conditions<Extrato> {
 			return repo.findAll(pageable);
 		} else {
 
-			return repo.findAll(Specification.where(conditions.equals("numconta", filter.getNumconta())
-					.or(conditions.likeIgnoreCase("operacao", filter.getOperacao()))), pageable);
+			return repo.findAll(where(conditions.equals("numconta", filter.getNumconta())
+					.and(conditions.likeIgnoreCase("operacao", filter.getOperacao()))), pageable);
 		}
 	}
 }
