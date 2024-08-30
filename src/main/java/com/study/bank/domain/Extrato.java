@@ -2,6 +2,8 @@ package com.study.bank.domain;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -36,5 +38,6 @@ public class Extrato {
 	private String operacao;
 	
 	@Column(name = "data")
+	@JsonFormat(pattern = "dd/MM/yyyy | HH:mm:ss")
 	private LocalDateTime data;
 }
