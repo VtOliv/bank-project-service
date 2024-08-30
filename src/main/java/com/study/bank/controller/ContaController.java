@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.study.bank.domain.Extrato;
 import com.study.bank.domain.filter.ExtratoFilter;
 import com.study.bank.domain.form.ContaForm;
+import com.study.bank.domain.form.LoginForm;
 import com.study.bank.domain.form.TransacaoForm;
 import com.study.bank.domain.view.ContaView;
 import com.study.bank.domain.view.TransacoesView;
@@ -131,4 +132,14 @@ public class ContaController {
 
 		return ResponseEntity.status(OK).body(extrato);
 	}
+	
+	@PostMapping("/logar")
+	public ResponseEntity<Boolean> logar(@RequestBody LoginForm form){
+		var response = service.logar(form);
+		
+		log.info("Resultado: {}", response? "Sucesso" : "Conta ou senha incorretos");
+		
+		return ResponseEntity.status(OK).body(response);
+	}
+	
 }

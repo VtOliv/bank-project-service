@@ -33,4 +33,7 @@ public class Conta {
 	
 	@Column(name = "status")
 	private boolean status;
+	
+	@Column(name = "senha")
+	private String senha;
 }

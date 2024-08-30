@@ -6,4 +6,5 @@ import com.study.bank.domain.Conta;
 
 public interface ContaRepository extends JpaRepository<Conta, Integer> {
 
+	Boolean existsByNumContaAndSenha(Integer numConta,String senha);
 }

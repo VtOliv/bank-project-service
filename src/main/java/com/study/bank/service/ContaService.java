@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import com.study.bank.domain.Conta;
 import com.study.bank.domain.TipoConta;
 import com.study.bank.domain.form.ContaForm;
+import com.study.bank.domain.form.LoginForm;
 import com.study.bank.domain.form.TransacaoForm;
 import com.study.bank.domain.view.ContaView;
 import com.study.bank.domain.view.TransacoesView;
@@ -47,6 +48,7 @@ public class ContaService {
 		var conta = new Conta();
 
 		conta.setDono(form.getDono());
+		conta.setSenha(form.getSenha());
 		conta.setTipo(TipoConta.getContaTipoPorCodigo(form.getTipo()).orElse(CC));
 		conta.setSaldo(conta.getTipo().equals(CC) ? 50.00 : 150.00);
 		conta.setStatus(true);
@@ -174,5 +176,16 @@ public class ContaService {
 		extratoService.gerarExtrato(conta.getNumConta(), saldoInicial, conta.getSaldo(), PAGAMENTO);
 
 		return view;
+	}
+	
+	public Boolean logar(LoginForm form) {
+		
+		var conta = repo.findById(form.getNumConta()).orElseThrow(NotFoundException::new);
+		
+		if(!conta.isStatus()) {
+			return false;
+		}
+		
+		return repo.existsByNumContaAndSenha(form.getNumConta(), form.getSenha());
 	}
 }

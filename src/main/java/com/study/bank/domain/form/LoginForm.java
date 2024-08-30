@@ -7,12 +7,8 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class ContaForm {
+public class LoginForm {
 
-	private Integer tipo;
-	
-	private String dono;
-	
+	private Integer numConta;
 	private String senha;
-
 }
