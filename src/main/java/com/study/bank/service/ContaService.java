@@ -194,11 +194,13 @@ public class ContaService {
 		var conta = repo.findById(form.getNumConta()).orElseThrow(NotFoundException::new);
 		if(form.getIsLogado()) {
 			conta.setSenha(form.getSenhaNova());
+			repo.save(conta);
 			return true;
 		} 
 		
 		if(!form.getIsLogado() && conta.getSenha().equals(form.getSenhaAntiga())){
 			conta.setSenha(form.getSenhaNova());
+			repo.save(conta);
 			return true;
 		}
 		
