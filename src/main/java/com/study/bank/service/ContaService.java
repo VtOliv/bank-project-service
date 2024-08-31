@@ -18,6 +18,7 @@ import com.study.bank.domain.Conta;
 import com.study.bank.domain.TipoConta;
 import com.study.bank.domain.form.ContaForm;
 import com.study.bank.domain.form.LoginForm;
+import com.study.bank.domain.form.SenhaForm;
 import com.study.bank.domain.form.TransacaoForm;
 import com.study.bank.domain.view.ContaView;
 import com.study.bank.domain.view.TransacoesView;
@@ -187,5 +188,20 @@ public class ContaService {
 		}
 		
 		return repo.existsByNumContaAndSenha(form.getNumConta(), form.getSenha());
+	}
+	
+	public Boolean trocarSenha(SenhaForm form) {
+		var conta = repo.findById(form.getNumConta()).orElseThrow(NotFoundException::new);
+		if(form.getIsLogado()) {
+			conta.setSenha(form.getSenhaNova());
+			return true;
+		} 
+		
+		if(!form.getIsLogado() && conta.getSenha().equals(form.getSenhaAntiga())){
+			conta.setSenha(form.getSenhaNova());
+			return true;
+		}
+		
+		return false;
 	}
 }

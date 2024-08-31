@@ -18,6 +18,7 @@ import com.study.bank.domain.Extrato;
 import com.study.bank.domain.filter.ExtratoFilter;
 import com.study.bank.domain.form.ContaForm;
 import com.study.bank.domain.form.LoginForm;
+import com.study.bank.domain.form.SenhaForm;
 import com.study.bank.domain.form.TransacaoForm;
 import com.study.bank.domain.view.ContaView;
 import com.study.bank.domain.view.TransacoesView;
@@ -138,6 +139,15 @@ public class ContaController {
 		var response = service.logar(form);
 		
 		log.info("Resultado: {}", response? "Sucesso" : "Conta ou senha incorretos");
+		
+		return ResponseEntity.status(OK).body(response);
+	}
+	
+	@PostMapping("/trocarSenha")
+	public ResponseEntity<Boolean> trocarSenha(@RequestBody SenhaForm form){
+		var response = service.trocarSenha(form);
+		
+		log.info("Resultado: {}", response? "Sucesso" : "Erro ao trocar a senha");
 		
 		return ResponseEntity.status(OK).body(response);
 	}
